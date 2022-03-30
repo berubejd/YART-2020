@@ -29,8 +29,10 @@ class EventHandler(tcod.event.EventDispatch[Action]):
         elif key == tcod.event.K_RIGHT:
             action = MovementAction(dx=1, dy=0)
 
-        elif key == tcod.event.K_ESCAPE:
-            action = EscapeAction()
+        # Using the escape key causes the game to exit immediately on subsequent starts
+
+        # elif key == tcod.event.K_ESCAPE:
+        #     action = EscapeAction()
 
         # No valid key was pressed
         return action
