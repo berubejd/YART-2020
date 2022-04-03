@@ -1,9 +1,10 @@
+import copy
 import random
 
 import tcod
 
+import entity_factories
 from engine import Engine
-from entity import Entity
 from input_handlers import EventHandler
 from paperdungeon import generate_paper_dungeon
 from procgen import generate_dungeon
@@ -16,15 +17,15 @@ def main() -> None:
     map_width = 80
     map_height = 45
 
+    max_monters_per_room = 2
+
     tileset = tcod.tileset.load_tilesheet(
         "data/dejavu16x16_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
 
     event_handler = EventHandler()
 
-    player = Entity(int(screen_width / 2), int(screen_height / 2), "@", (255, 255, 255))
-    npc = Entity(int(screen_width / 2 - 5), int(screen_height / 2), "@", (255, 255, 0))
-    entities = {npc, player}
+    player = copy.deepcopy(entity_factories.player)
 
     if random.randrange(100) < 60:
         # Generate a "paper" dungeon most of the time
@@ -46,6 +47,7 @@ def main() -> None:
             max_corridor_length=max_corridor_length,
             map_width=map_width,
             map_height=map_height,
+            max_monsters_per_room=max_monters_per_room,
             player=player,
         )
 
@@ -64,12 +66,11 @@ def main() -> None:
             room_max_size=room_max_size,
             map_width=map_width,
             map_height=map_height,
+            max_monsters_per_room=max_monters_per_room,
             player=player,
         )
 
-    engine = Engine(
-        entities=entities, event_handler=event_handler, game_map=game_map, player=player
-    )
+    engine = Engine(event_handler=event_handler, game_map=game_map, player=player)
 
     with tcod.context.new_terminal(
         screen_width,

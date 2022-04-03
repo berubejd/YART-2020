@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 from tcod import map_get_width
 
+import entity_factories
 import tile_types
 from game_map import GameMap
 
@@ -115,11 +116,33 @@ class Room:
         self.is_room = is_room
 
 
+def place_entities(
+    room: RectangularRoom,
+    dungeon: GameMap,
+    max_monsters: int,
+) -> None:
+    """Place monsters and items in a room"""
+    number_of_monsters = random.randint(0, max_monsters)
+
+    for _ in range(number_of_monsters):
+        x = random.randint(room.x1 + 1, room.x2 - 1)
+        y = random.randint(room.y1 + 1, room.y2 - 1)
+
+        if not any(
+            entity for entity in dungeon.entities if entity.x == x and entity.y == y
+        ):
+            if random.random() < 0.8:
+                entity_factories.orc.spawn(dungeon, x, y)
+            else:
+                entity_factories.troll.spawn(dungeon, x, y)
+
+
 def generate_paper_dungeon(
     room_min_size: int,
     room_max_size: int,
     map_width: int,
     map_height: int,
+    max_monsters_per_room: int,
     player: Entity,
     complexity: int = 1,
     min_corridor_length: int = 4,
@@ -128,7 +151,7 @@ def generate_paper_dungeon(
 ) -> GameMap:
     """Generate a new dungeon map using randomly placed non-overlapping rooms"""
     """We may generate fewer than max rooms due to room collisions"""
-    map = GameMap(map_width, map_height)
+    map = GameMap(map_width, map_height, entities=[player])
 
     # Create the initial dungeon generator
     dungeon = Dungeon(map_width=map_width, map_height=map_height)
@@ -177,6 +200,10 @@ def generate_paper_dungeon(
     # Place the player somewhere in the dungeon
     start_room = dungeon.rooms[random.randrange(len(dungeon.rooms))]
     player.x, player.y = start_room.room.center
+
+    # Place the monsters
+    for room in dungeon.rooms:
+        place_entities(room.room, map, max_monsters_per_room)
 
     # Find room to contain the stairs
     while True:

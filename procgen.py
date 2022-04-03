@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Iterator, List, Tuple
+from typing import TYPE_CHECKING, Iterator
 
 import tcod
 
+import entity_factories
 import tile_types
 from game_map import GameMap
 
@@ -20,7 +21,7 @@ class RectangularRoom:
         self.y2 = y + height
 
     @property
-    def center(self) -> Tuple[int, int]:
+    def center(self) -> tuple[int, int]:
         """Return the center of the rectangle room as a tuple"""
         center_x = int((self.x1 + self.x2) / 2)
         center_y = int((self.y1 + self.y2) / 2)
@@ -28,7 +29,7 @@ class RectangularRoom:
         return center_x, center_y
 
     @property
-    def inner(self) -> Tuple[slice, slice]:
+    def inner(self) -> tuple[slice, slice]:
         """Return a tuple containing a slice of the map inside the rectangle room"""
         return slice(self.x1 + 1, self.x2), slice(self.y1 + 1, self.y2)
 
@@ -42,9 +43,30 @@ class RectangularRoom:
         )
 
 
+def place_entities(
+    room: RectangularRoom,
+    dungeon: GameMap,
+    max_monsters: int,
+) -> None:
+    """Place monsters and items in a room"""
+    number_of_monsters = random.randint(0, max_monsters)
+
+    for _ in range(number_of_monsters):
+        x = random.randint(room.x1 + 1, room.x2 - 1)
+        y = random.randint(room.y1 + 1, room.y2 - 1)
+
+        if not any(
+            entity for entity in dungeon.entities if entity.x == x and entity.y == y
+        ):
+            if random.random() < 0.8:
+                entity_factories.orc.spawn(dungeon, x, y)
+            else:
+                entity_factories.troll.spawn(dungeon, x, y)
+
+
 def tunnel_between(
-    start: Tuple[int, int], end: Tuple[int, int]
-) -> Iterator[Tuple[int, int]]:
+    start: tuple[int, int], end: tuple[int, int]
+) -> Iterator[tuple[int, int]]:
     """Return an L-shaped tunnel between these two points."""
     x1, y1 = start
     x2, y2 = end
@@ -69,13 +91,14 @@ def generate_dungeon(
     room_max_size: int,
     map_width: int,
     map_height: int,
+    max_monsters_per_room: int,
     player: Entity,
 ) -> GameMap:
     """Generate a new dungeon map using randomly placed non-overlapping rooms"""
     """We may generate fewer than max rooms due to room collisions"""
-    dungeon = GameMap(map_width, map_height)
+    dungeon = GameMap(map_width, map_height, entities=[player])
 
-    rooms: List[RectangularRoom] = []
+    rooms: list[RectangularRoom] = []
 
     for r in range(max_rooms):
         room_width = random.randint(room_min_size, room_max_size)
@@ -101,6 +124,8 @@ def generate_dungeon(
             # Dig a tunnel to the previous room
             for x, y in tunnel_between(rooms[-1].center, new_room.center):
                 dungeon.tiles[x, y] = tile_types.floor
+
+        place_entities(new_room, dungeon, max_monsters_per_room)
 
         # Add the new room to the list of valid rooms in the dungeon
         rooms.append(new_room)
