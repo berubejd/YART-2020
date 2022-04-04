@@ -4,14 +4,12 @@ import math
 import random
 from typing import TYPE_CHECKING, Optional
 
-from tcod import map_get_width
-
 import entity_factories
 import tile_types
 from game_map import GameMap
 
 if TYPE_CHECKING:
-    from entity import Entity
+    from engine import Engine
 
 
 class RectangularRoom:
@@ -143,7 +141,7 @@ def generate_paper_dungeon(
     map_width: int,
     map_height: int,
     max_monsters_per_room: int,
-    player: Entity,
+    engine: Engine,
     complexity: int = 1,
     min_corridor_length: int = 4,
     max_corridor_length: int = 12,
@@ -151,7 +149,8 @@ def generate_paper_dungeon(
 ) -> GameMap:
     """Generate a new dungeon map using randomly placed non-overlapping rooms"""
     """We may generate fewer than max rooms due to room collisions"""
-    map = GameMap(map_width, map_height, entities=[player])
+    player = engine.player
+    map = GameMap(engine, map_width, map_height, entities=[player])
 
     # Create the initial dungeon generator
     dungeon = Dungeon(map_width=map_width, map_height=map_height)
@@ -199,7 +198,7 @@ def generate_paper_dungeon(
 
     # Place the player somewhere in the dungeon
     start_room = dungeon.rooms[random.randrange(len(dungeon.rooms))]
-    player.x, player.y = start_room.room.center
+    player.place(*start_room.room.center, map)
 
     # Place the monsters
     for room in dungeon.rooms:

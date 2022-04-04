@@ -5,7 +5,6 @@ import tcod
 
 import entity_factories
 from engine import Engine
-from input_handlers import EventHandler
 from paperdungeon import generate_paper_dungeon
 from procgen import generate_dungeon
 
@@ -23,9 +22,8 @@ def main() -> None:
         "data/dejavu16x16_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
     )
 
-    event_handler = EventHandler()
-
     player = copy.deepcopy(entity_factories.player)
+    engine = Engine(player=player)
 
     if random.randrange(100) < 60:
         # Generate a "paper" dungeon most of the time
@@ -39,7 +37,7 @@ def main() -> None:
 
         complexity = 10
 
-        game_map = generate_paper_dungeon(
+        engine.gamemap = generate_paper_dungeon(
             complexity=complexity,
             room_min_size=room_min_size,
             room_max_size=room_max_size,
@@ -48,7 +46,7 @@ def main() -> None:
             map_width=map_width,
             map_height=map_height,
             max_monsters_per_room=max_monters_per_room,
-            player=player,
+            engine=engine,
         )
 
     else:
@@ -60,17 +58,17 @@ def main() -> None:
 
         max_rooms = 30
 
-        game_map = generate_dungeon(
+        engine.gamemap = generate_dungeon(
             max_rooms=max_rooms,
             room_min_size=room_min_size,
             room_max_size=room_max_size,
             map_width=map_width,
             map_height=map_height,
             max_monsters_per_room=max_monters_per_room,
-            player=player,
+            engine=engine,
         )
 
-    engine = Engine(event_handler=event_handler, game_map=game_map, player=player)
+    engine.update_fov()
 
     with tcod.context.new_terminal(
         screen_width,
@@ -83,8 +81,7 @@ def main() -> None:
 
         while True:
             engine.render(console=root_console, context=context)
-            events = tcod.event.wait()
-            engine.handle_events(events)
+            engine.event_handler.handle_events()
 
 
 if __name__ == "__main__":
