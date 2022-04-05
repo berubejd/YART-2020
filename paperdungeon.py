@@ -217,7 +217,7 @@ def generate_paper_dungeon(
 
 
 class Dungeon:
-    def __init__(self, map_width: int, map_height: int, padding: int = 8) -> None:
+    def __init__(self, map_width: int, map_height: int, padding: int = 4) -> None:
         # Track rooms and doors
         self.data: dict = {}
         self.doorPos: dict = {}

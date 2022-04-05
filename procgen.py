@@ -93,6 +93,7 @@ def generate_dungeon(
     map_height: int,
     max_monsters_per_room: int,
     engine: Engine,
+    padding: int = 4,
 ) -> GameMap:
     """Generate a new dungeon map using randomly placed non-overlapping rooms"""
     """We may generate fewer than max rooms due to room collisions"""
@@ -105,8 +106,9 @@ def generate_dungeon(
         room_width = random.randint(room_min_size, room_max_size)
         room_height = random.randint(room_min_size, room_max_size)
 
-        x = random.randint(0, dungeon.width - room_width - 1)
-        y = random.randint(0, dungeon.height - room_height - 1)
+        # Randomly position the room ensuring some padding around the map edges
+        x = random.randint(padding, dungeon.width - padding - room_width - 1)
+        y = random.randint(padding, dungeon.height - padding - room_height - 1)
 
         new_room = RectangularRoom(x, y, room_width, room_height)
 

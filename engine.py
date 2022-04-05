@@ -3,10 +3,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tcod.console import Console
-from tcod.context import Context
 from tcod.map import compute_fov
 
 from input_handlers import MainGameEventHandler
+from message_log import MessageLog
+from render_functions import (
+    render_bar,
+    render_bar_classic,
+    render_names_at_mouse_location,
+)
 
 if TYPE_CHECKING:
     from entity import Actor
@@ -24,6 +29,8 @@ class Engine:
         player: Actor,
     ) -> None:
         self.event_handler: EventHandler = MainGameEventHandler(self)
+        self.message_log = MessageLog()
+        self.mouse_location: tuple[int, int] = (0, 0)
         self.player = player
 
     def handle_enemy_turns(self) -> None:
@@ -42,14 +49,16 @@ class Engine:
         # Add visible tiles to the explored tile list
         self.gamemap.explored |= self.gamemap.visible
 
-    def render(self, console: Console, context: Context) -> None:
+    def render(self, console: Console) -> None:
         self.gamemap.render(console=console)
 
-        console.print(
-            x=1,
-            y=47,
-            string=f"HP: {self.player.fighter.hp}/{self.player.fighter.max_hp}",
+        self.message_log.render(console=console, x=21, y=44, width=40, height=5)
+
+        render_bar_classic(
+            console=console,
+            current_value=self.player.fighter.hp,
+            maximum_value=self.player.fighter.max_hp,
+            total_width=14,
         )
 
-        context.present(console)
-        console.clear()
+        render_names_at_mouse_location(console=console, x=1, y=1, engine=self)

@@ -3,6 +3,7 @@ import random
 
 import tcod
 
+import color
 import entity_factories
 from engine import Engine
 from paperdungeon import generate_paper_dungeon
@@ -14,18 +15,31 @@ def main() -> None:
     screen_height = 50
 
     map_width = 80
-    map_height = 45
+    map_height = 43
 
     max_monters_per_room = 2
 
+    # TCOD tileset
+    # tileset = tcod.tileset.load_tilesheet(
+    #     "data/dejavu16x16_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
+    # )
+
+    # Ascii tileset
     tileset = tcod.tileset.load_tilesheet(
-        "data/dejavu16x16_gs_tc.png", 32, 8, tcod.tileset.CHARMAP_TCOD
+        "data/16x16_sb_ascii.png", 16, 16, tcod.tileset.CHARMAP_CP437
     )
+
+    # Truetype font tileset
+    # tileset = tcod.tileset.load_truetype_font(
+    #     "data/Example.ttf",
+    #     tile_width=16,
+    #     tile_height=16,
+    # )
 
     player = copy.deepcopy(entity_factories.player)
     engine = Engine(player=player)
 
-    if random.randrange(100) < 60:
+    if random.randrange(100) < 70:
         # Generate a "paper" dungeon most of the time
         print("Generating a paper dungeon...")
 
@@ -70,6 +84,10 @@ def main() -> None:
 
     engine.update_fov()
 
+    engine.message_log.add_message(
+        "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
+    )
+
     with tcod.context.new_terminal(
         screen_width,
         screen_height,
@@ -80,8 +98,11 @@ def main() -> None:
         root_console = tcod.Console(screen_width, screen_height, order="F")
 
         while True:
-            engine.render(console=root_console, context=context)
-            engine.event_handler.handle_events()
+            root_console.clear()
+            engine.event_handler.on_render(console=root_console)
+            context.present(root_console)
+
+            engine.event_handler.handle_events(context)
 
 
 if __name__ == "__main__":
