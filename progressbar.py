@@ -31,6 +31,11 @@ def progress_bar(
 
     if progress != complete:
         progress_length = int(progress / 100 * length)
+
+        # Ensure that the progress bar is always at least 1 character long unless complete
+        if progress > 0 and progress_length == 0:
+            progress_length = 1
+
         fill = "#" * progress_length
     else:
         fill = msg_complete

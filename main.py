@@ -1,5 +1,6 @@
 import copy
 import random
+import traceback
 
 import tcod
 
@@ -17,7 +18,8 @@ def main() -> None:
     map_width = 80
     map_height = 43
 
-    max_monters_per_room = 2
+    max_monsters_per_room = 2
+    max_items_per_room = 2
 
     # TCOD tileset
     # tileset = tcod.tileset.load_tilesheet(
@@ -59,7 +61,8 @@ def main() -> None:
             max_corridor_length=max_corridor_length,
             map_width=map_width,
             map_height=map_height,
-            max_monsters_per_room=max_monters_per_room,
+            max_monsters_per_room=max_monsters_per_room,
+            max_items_per_room=max_items_per_room,
             engine=engine,
         )
 
@@ -78,7 +81,8 @@ def main() -> None:
             room_max_size=room_max_size,
             map_width=map_width,
             map_height=map_height,
-            max_monsters_per_room=max_monters_per_room,
+            max_monsters_per_room=max_monsters_per_room,
+            max_items_per_room=max_items_per_room,
             engine=engine,
         )
 
@@ -102,7 +106,15 @@ def main() -> None:
             engine.event_handler.on_render(console=root_console)
             context.present(root_console)
 
-            engine.event_handler.handle_events(context)
+            try:
+                for event in tcod.event.wait():
+                    context.convert_event(event)
+                    engine.event_handler.handle_events(event)
+            except Exception:
+                traceback.print_exc()  # Print the exception to the console
+                engine.message_log.add_message(
+                    traceback.format_exc(), color.error
+                )  # Print the exception to the message log
 
 
 if __name__ == "__main__":

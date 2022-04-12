@@ -6,7 +6,7 @@ import numpy as np
 from tcod.console import Console
 
 import tile_types
-from entity import Actor
+from entity import Actor, Item
 
 if TYPE_CHECKING:
     from engine import Engine
@@ -29,6 +29,10 @@ class GameMap:
         self.explored = np.full((width, height), fill_value=False, order="F")
 
     @property
+    def gamemap(self) -> GameMap:
+        return self
+
+    @property
     def actors(self) -> Iterator[Actor]:
         """Return an iterator over all living actors on the map"""
         yield from (
@@ -36,6 +40,11 @@ class GameMap:
             for entity in self.entities
             if isinstance(entity, Actor) and entity.is_alive
         )
+
+    @property
+    def items(self) -> Iterator[Item]:
+        """Return an iterator over all items on the map"""
+        yield from (entity for entity in self.entities if isinstance(entity, Item))
 
     def get_blocking_entity_at_location(self, x: int, y: int) -> Optional[Entity]:
         """Return the first entity at x, y that blocks movement"""

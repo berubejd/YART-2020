@@ -118,9 +118,11 @@ def place_entities(
     room: RectangularRoom,
     dungeon: GameMap,
     max_monsters: int,
+    max_items: int,
 ) -> None:
     """Place monsters and items in a room"""
     number_of_monsters = random.randint(0, max_monsters)
+    number_of_items = random.randint(0, max_items)
 
     for _ in range(number_of_monsters):
         x = random.randint(room.x1 + 1, room.x2 - 1)
@@ -134,6 +136,13 @@ def place_entities(
             else:
                 entity_factories.troll.spawn(dungeon, x, y)
 
+    for _ in range(number_of_items):
+        x = random.randint(room.x1 + 1, room.x2 - 1)
+        y = random.randint(room.y1 + 1, room.y2 - 1)
+
+        if not any(entity.x == x and entity.y == y for entity in dungeon.entities):
+            entity_factories.health_potion.spawn(dungeon, x, y)
+
 
 def generate_paper_dungeon(
     room_min_size: int,
@@ -141,6 +150,7 @@ def generate_paper_dungeon(
     map_width: int,
     map_height: int,
     max_monsters_per_room: int,
+    max_items_per_room: int,
     engine: Engine,
     complexity: int = 1,
     min_corridor_length: int = 4,
@@ -178,14 +188,6 @@ def generate_paper_dungeon(
             h = random.randrange(room_min_size, room_max_size)
             dungeon.add_room(RectangularRoom(new_room.x - 1, new_room.y - 1, w, h))
 
-    # Need to verify if this is a needed pass
-    # for _ in range(10 + complexity * 2):
-    #     dungeon.add_random_corridor(
-    #         room=dungeon.get_random_room(),
-    #         length=random.randrange(10, 20),
-    #         connecting=True,
-    #     )
-
     # "Completed" dungeon generation
 
     # Create the map from the dungeon
@@ -202,7 +204,11 @@ def generate_paper_dungeon(
 
     # Place the monsters
     for room in dungeon.rooms:
-        place_entities(room.room, map, max_monsters_per_room)
+        if room == start_room:
+            # Disable monster spawning in the starting room
+            max_monsters_per_room = 0
+
+        place_entities(room.room, map, max_monsters_per_room, max_items_per_room)
 
     # Find room to contain the stairs
     while True:
@@ -229,7 +235,7 @@ class Dungeon:
 
         # Set map borders
         self.borders = RectangularRoom(
-            padding, padding, map_width - padding, map_height - padding
+            padding, padding, map_width - (padding * 2), map_height - (padding * 2)
         )
 
     # Map generation functions
