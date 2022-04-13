@@ -5,3 +5,11 @@ class Impossible(Exception):
     """
 
     pass
+
+
+class QuitWithoutSaving(SystemExit):
+    """
+    Exception raised when the player quits the game without saving
+    """
+
+    pass

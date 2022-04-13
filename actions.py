@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 import color
-from components.inventory import Inventory
 import exceptions
 
 if TYPE_CHECKING:

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from lib2to3.pytree import Base
 
 from typing import TYPE_CHECKING
 

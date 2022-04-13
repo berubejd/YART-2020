@@ -1,25 +1,23 @@
-import copy
-import random
 import traceback
 
 import tcod
 
 import color
-import entity_factories
-from engine import Engine
-from paperdungeon import generate_paper_dungeon
-from procgen import generate_dungeon
+import exceptions
+import input_handlers
+import setup_game
+
+
+def save_game(handler: input_handlers.BaseEventHandler, filename: str) -> None:
+    """Save the game to a file if the current event handler has an active Engine"""
+    if isinstance(handler, input_handlers.EventHandler):
+        handler.engine.save_as(filename)
+        print(f"Saved game to {filename}")
 
 
 def main() -> None:
     screen_width = 80
     screen_height = 50
-
-    map_width = 80
-    map_height = 43
-
-    max_monsters_per_room = 2
-    max_items_per_room = 2
 
     # TCOD tileset
     # tileset = tcod.tileset.load_tilesheet(
@@ -38,83 +36,39 @@ def main() -> None:
     #     tile_height=16,
     # )
 
-    player = copy.deepcopy(entity_factories.player)
-    engine = Engine(player=player)
-
-    if random.randrange(100) < 70:
-        # Generate a "paper" dungeon most of the time
-        print("Generating a paper dungeon...")
-
-        room_min_size = 4
-        room_max_size = 7
-
-        min_corridor_length: int = room_min_size + 1
-        max_corridor_length: int = room_max_size * 3
-
-        complexity = 10
-
-        engine.gamemap = generate_paper_dungeon(
-            complexity=complexity,
-            room_min_size=room_min_size,
-            room_max_size=room_max_size,
-            min_corridor_length=min_corridor_length,
-            max_corridor_length=max_corridor_length,
-            map_width=map_width,
-            map_height=map_height,
-            max_monsters_per_room=max_monsters_per_room,
-            max_items_per_room=max_items_per_room,
-            engine=engine,
-        )
-
-    else:
-        # Generate an "original" dungeon sometimes
-        print("Generating a procgen dungeon...")
-
-        room_min_size = 6
-        room_max_size = 10
-
-        max_rooms = 30
-
-        engine.gamemap = generate_dungeon(
-            max_rooms=max_rooms,
-            room_min_size=room_min_size,
-            room_max_size=room_max_size,
-            map_width=map_width,
-            map_height=map_height,
-            max_monsters_per_room=max_monsters_per_room,
-            max_items_per_room=max_items_per_room,
-            engine=engine,
-        )
-
-    engine.update_fov()
-
-    engine.message_log.add_message(
-        "Hello and welcome, adventurer, to yet another dungeon!", color.welcome_text
-    )
+    handler: input_handlers.BaseEventHandler = setup_game.MainMenu()
 
     with tcod.context.new_terminal(
         screen_width,
         screen_height,
         tileset=tileset,
-        title="Yet Another Roguelike Tutorial",
+        title="Tombs of the Ancient Kings",
         vsync=True,
     ) as context:
         root_console = tcod.Console(screen_width, screen_height, order="F")
 
-        while True:
-            root_console.clear()
-            engine.event_handler.on_render(console=root_console)
-            context.present(root_console)
+        try:
+            while True:
+                root_console.clear()
+                handler.on_render(console=root_console)
+                context.present(root_console)
 
-            try:
-                for event in tcod.event.wait():
-                    context.convert_event(event)
-                    engine.event_handler.handle_events(event)
-            except Exception:
-                traceback.print_exc()  # Print the exception to the console
-                engine.message_log.add_message(
-                    traceback.format_exc(), color.error
-                )  # Print the exception to the message log
+                try:
+                    for event in tcod.event.wait():
+                        context.convert_event(event)
+                        handler = handler.handle_events(event)
+                except Exception:  # Handle exceptions in game.
+                    traceback.print_exc()  # Print error to stderr.
+                    # Then print the error to the message log.
+                    if isinstance(handler, input_handlers.EventHandler):
+                        handler.engine.message_log.add_message(
+                            traceback.format_exc(), color.error
+                        )
+        except exceptions.QuitWithoutSaving:
+            raise
+        except (SystemExit, BaseException):  # Save and quit.
+            save_game(handler, "savegame.sav")
+            raise
 
 
 if __name__ == "__main__":
