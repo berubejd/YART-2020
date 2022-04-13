@@ -1,4 +1,5 @@
 from __future__ import annotations
+from turtle import width
 
 from typing import TYPE_CHECKING
 
@@ -66,13 +67,27 @@ def render_bar_classic(
     console.print(x=1, y=45, string=new_bar, alignment=tcod.LEFT)
 
 
+def render_dungeon_level(
+    console: Console, dungeon_level: int, location: tuple[int, int]
+) -> None:
+    """Render the dungeon level at the given location of the screen"""
+    x, y = location
+    message = f"Dungeon Level: {dungeon_level}"
+
+    console.print(
+        x=x,
+        y=y,
+        string=f"{message:^{console.width}}",
+    )
+
+
 def render_names_at_mouse_location(
     console: Console, x: int, y: int, engine: Engine
 ) -> None:
     mouse_x, mouse_y = engine.mouse_location
 
     names_at_mouse_location = get_names_at_location(
-        x=mouse_x, y=mouse_y, game_map=engine.gamemap
+        x=mouse_x, y=mouse_y, game_map=engine.game_map
     )
 
     console.print(x=x, y=y, string=names_at_mouse_location)

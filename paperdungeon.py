@@ -228,7 +228,8 @@ def generate_paper_dungeon(
             break
 
     # Place stairs in the selected room
-    # Do something here
+    map.tiles[exit_room.room.center] = tile_types.down_stairs
+    map.downstairs_location = exit_room.room.center
 
     return map
 

@@ -149,6 +149,9 @@ def generate_dungeon(
 
         place_entities(new_room, dungeon, max_monsters_per_room, max_items_per_room)
 
+        dungeon.tiles[new_room.center] = tile_types.down_stairs
+        dungeon.downstairs_location = new_room.center
+
         # Add the new room to the list of valid rooms in the dungeon
         rooms.append(new_room)
 

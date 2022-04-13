@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import TYPE_CHECKING, Iterable, Iterator, Optional
 
 import numpy as np
@@ -27,6 +28,8 @@ class GameMap:
         # Track currently visible and previously visited but no longer visible tiles
         self.visible = np.full((width, height), fill_value=False, order="F")
         self.explored = np.full((width, height), fill_value=False, order="F")
+
+        self.downstairs_location: tuple[int, int] = (0, 0)
 
     @property
     def gamemap(self) -> GameMap:
@@ -90,3 +93,85 @@ class GameMap:
                 console.print(
                     x=entity.x, y=entity.y, string=entity.char, fg=entity.color
                 )
+
+
+class GameWorld:
+    """Holds GameMap settings as well as generates new maps when moving down stairs"""
+
+    def __init__(
+        self,
+        *,
+        engine: Engine,
+        map_width: int,
+        map_height: int,
+        max_monsters_per_room: int,
+        max_items_per_room: int,
+        current_floor: int = 0,
+    ) -> None:
+        self.engine = engine
+
+        self.map_width = map_width
+        self.map_height = map_height
+
+        self.max_monsters_per_room = max_monsters_per_room
+        self.max_items_per_room = max_items_per_room
+
+        self.current_floor = current_floor
+
+    def generate_floor(self) -> None:
+        """Increment floor number and generate new floor type"""
+        self.current_floor += 1
+
+        if random.randrange(100) < 70:
+            self.generate_paper_floor()
+        else:
+            self.generate_procgen_floor()
+
+    def generate_paper_floor(self) -> None:
+        # Generate a "paper" dungeon most of the time
+        from paperdungeon import generate_paper_dungeon
+
+        print("Generating a paper dungeon...")
+
+        room_min_size = 4
+        room_max_size = 7
+
+        min_corridor_length: int = room_min_size + 1
+        max_corridor_length: int = room_max_size * 3
+
+        complexity = 3
+
+        self.engine.game_map = generate_paper_dungeon(
+            complexity=complexity,
+            room_min_size=room_min_size,
+            room_max_size=room_max_size,
+            min_corridor_length=min_corridor_length,
+            max_corridor_length=max_corridor_length,
+            map_width=self.map_width,
+            map_height=self.map_height,
+            max_monsters_per_room=self.max_monsters_per_room,
+            max_items_per_room=self.max_items_per_room,
+            engine=self.engine,
+        )
+
+    def generate_procgen_floor(self) -> None:
+        # Generate an "original" dungeon sometimes
+        from procgen import generate_dungeon
+
+        print("Generating a procgen dungeon...")
+
+        room_min_size = 6
+        room_max_size = 10
+
+        max_rooms = 30
+
+        self.engine.game_map = generate_dungeon(
+            max_rooms=max_rooms,
+            room_min_size=room_min_size,
+            room_max_size=room_max_size,
+            map_width=self.map_width,
+            map_height=self.map_height,
+            max_monsters_per_room=self.max_monsters_per_room,
+            max_items_per_room=self.max_items_per_room,
+            engine=self.engine,
+        )

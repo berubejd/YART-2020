@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import lzma
 import pickle
-import random
 import traceback
 from typing import Optional
 
@@ -13,8 +12,7 @@ import color
 import entity_factories
 import input_handlers
 from engine import Engine
-from paperdungeon import generate_paper_dungeon
-from procgen import generate_dungeon
+from game_map import GameWorld
 
 # Load the background image and remove the alpha channel.
 background_image = tcod.image.load("data/menu_background.png")[:, :, :3]
@@ -31,51 +29,15 @@ def new_game() -> Engine:
     player = copy.deepcopy(entity_factories.player)
     engine = Engine(player=player)
 
-    if random.randrange(100) < 70:
-        # Generate a "paper" dungeon most of the time
-        print("Generating a paper dungeon...")
+    engine.game_world = GameWorld(
+        engine=engine,
+        map_width=map_width,
+        map_height=map_height,
+        max_monsters_per_room=max_monsters_per_room,
+        max_items_per_room=max_items_per_room,
+    )
 
-        room_min_size = 4
-        room_max_size = 7
-
-        min_corridor_length: int = room_min_size + 1
-        max_corridor_length: int = room_max_size * 3
-
-        complexity = 10
-
-        engine.gamemap = generate_paper_dungeon(
-            complexity=complexity,
-            room_min_size=room_min_size,
-            room_max_size=room_max_size,
-            min_corridor_length=min_corridor_length,
-            max_corridor_length=max_corridor_length,
-            map_width=map_width,
-            map_height=map_height,
-            max_monsters_per_room=max_monsters_per_room,
-            max_items_per_room=max_items_per_room,
-            engine=engine,
-        )
-
-    else:
-        # Generate an "original" dungeon sometimes
-        print("Generating a procgen dungeon...")
-
-        room_min_size = 6
-        room_max_size = 10
-
-        max_rooms = 30
-
-        engine.gamemap = generate_dungeon(
-            max_rooms=max_rooms,
-            room_min_size=room_min_size,
-            room_max_size=room_max_size,
-            map_width=map_width,
-            map_height=map_height,
-            max_monsters_per_room=max_monsters_per_room,
-            max_items_per_room=max_items_per_room,
-            engine=engine,
-        )
-
+    engine.game_world.generate_floor()
     engine.update_fov()
 
     engine.message_log.add_message(
