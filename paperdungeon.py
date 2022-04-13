@@ -10,6 +10,7 @@ from game_map import GameMap
 
 if TYPE_CHECKING:
     from engine import Engine
+    from entity import Entity
 
 
 class RectangularRoom:
@@ -118,39 +119,55 @@ def place_entities(
     room: RectangularRoom,
     dungeon: GameMap,
     max_monsters: int,
+    monster_chances: dict[int, list[tuple[Entity, int]]],
     max_items: int,
+    item_chances: dict[int, list[tuple[Entity, int]]],
+    floor_number: int,
 ) -> None:
     """Place monsters and items in a room"""
     number_of_monsters = random.randint(0, max_monsters)
     number_of_items = random.randint(0, max_items)
 
-    for _ in range(number_of_monsters):
-        x = random.randint(room.x1 + 1, room.x2 - 1)
-        y = random.randint(room.y1 + 1, room.y2 - 1)
+    monsters: list[Entity] = get_entities_at_random(
+        monster_chances, number_of_monsters, floor_number
+    )
+    items: list[Entity] = get_entities_at_random(
+        item_chances, number_of_items, floor_number
+    )
 
-        if not any(
-            entity for entity in dungeon.entities if entity.x == x and entity.y == y
-        ):
-            if random.random() < 0.8:
-                entity_factories.orc.spawn(dungeon, x, y)
-            else:
-                entity_factories.troll.spawn(dungeon, x, y)
-
-    for _ in range(number_of_items):
+    for entity in monsters + items:
         x = random.randint(room.x1 + 1, room.x2 - 1)
         y = random.randint(room.y1 + 1, room.y2 - 1)
 
         if not any(entity.x == x and entity.y == y for entity in dungeon.entities):
-            item_chance = random.random()
+            entity.spawn(dungeon, x, y)
 
-            if item_chance < 0.7:
-                entity_factories.health_potion.spawn(dungeon, x, y)
-            elif item_chance < 0.8:
-                entity_factories.fireball_scroll.spawn(dungeon, x, y)
-            elif item_chance < 0.9:
-                entity_factories.confusion_scroll.spawn(dungeon, x, y)
-            else:
-                entity_factories.lightning_scroll.spawn(dungeon, x, y)
+
+def get_entities_at_random(
+    weighted_chances_by_floor: dict[int, list[tuple[Entity, int]]],
+    number_of_entities: int,
+    floor: int,
+) -> list[Entity]:
+    entity_weighted_chances = {}
+
+    for key, values in weighted_chances_by_floor.items():
+        if key > floor:
+            break
+        else:
+            for value in values:
+                entity = value[0]
+                weighted_chance = value[1]
+
+                entity_weighted_chances[entity] = weighted_chance
+
+    entities = list(entity_weighted_chances.keys())
+    entity_weighted_chance_values = list(entity_weighted_chances.values())
+
+    chosen_entities = random.choices(
+        entities, weights=entity_weighted_chance_values, k=number_of_entities
+    )
+
+    return chosen_entities
 
 
 def generate_paper_dungeon(
@@ -159,7 +176,9 @@ def generate_paper_dungeon(
     map_width: int,
     map_height: int,
     max_monsters_per_room: int,
+    monster_chances: dict[int, list[tuple[Entity, int]]],
     max_items_per_room: int,
+    item_chances: dict[int, list[tuple[Entity, int]]],
     engine: Engine,
     complexity: int = 1,
     min_corridor_length: int = 4,
@@ -219,7 +238,15 @@ def generate_paper_dungeon(
         else:
             max_monsters = max_monsters_per_room
 
-        place_entities(room.room, map, max_monsters, max_items_per_room)
+        place_entities(
+            room.room,
+            map,
+            max_monsters,
+            monster_chances,
+            max_items_per_room,
+            item_chances,
+            engine.game_world.current_floor,
+        )
 
     # Find room to contain the stairs
     while True:

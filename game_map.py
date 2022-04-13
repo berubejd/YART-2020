@@ -6,12 +6,39 @@ from typing import TYPE_CHECKING, Iterable, Iterator, Optional
 import numpy as np
 from tcod.console import Console
 
+import entity_factories
 import tile_types
 from entity import Actor, Item
 
 if TYPE_CHECKING:
     from engine import Engine
     from entity import Entity
+
+
+max_items_by_floor = [
+    (1, 1),
+    (4, 2),
+]
+
+item_chances: dict[int, list[tuple[Entity, int]]] = {
+    0: [(entity_factories.health_potion, 35)],
+    2: [(entity_factories.confusion_scroll, 10)],
+    4: [(entity_factories.lightning_scroll, 25)],
+    6: [(entity_factories.fireball_scroll, 25)],
+}
+
+max_monsters_by_floor = [
+    (1, 2),
+    (4, 3),
+    (6, 5),
+]
+
+monster_chances: dict[int, list[tuple[Entity, int]]] = {
+    0: [(entity_factories.orc, 80)],
+    3: [(entity_factories.troll, 15)],
+    5: [(entity_factories.troll, 30)],
+    7: [(entity_factories.troll, 60)],
+}
 
 
 class GameMap:
@@ -104,17 +131,12 @@ class GameWorld:
         engine: Engine,
         map_width: int,
         map_height: int,
-        max_monsters_per_room: int,
-        max_items_per_room: int,
         current_floor: int = 0,
     ) -> None:
         self.engine = engine
 
         self.map_width = map_width
         self.map_height = map_height
-
-        self.max_monsters_per_room = max_monsters_per_room
-        self.max_items_per_room = max_items_per_room
 
         self.current_floor = current_floor
 
@@ -139,18 +161,33 @@ class GameWorld:
         min_corridor_length: int = room_min_size + 1
         max_corridor_length: int = room_max_size * 3
 
-        complexity = 3
+        base_complexity = 3
+        complexity_by_floor = [
+            (2, 1),
+            (5, 2),
+            (10, 3),
+            (20, 4),
+        ]
+        scaled_complexity = base_complexity + get_max_value_for_floor(
+            complexity_by_floor, self.current_floor
+        )
 
         self.engine.game_map = generate_paper_dungeon(
-            complexity=complexity,
+            complexity=scaled_complexity,
             room_min_size=room_min_size,
             room_max_size=room_max_size,
             min_corridor_length=min_corridor_length,
             max_corridor_length=max_corridor_length,
             map_width=self.map_width,
             map_height=self.map_height,
-            max_monsters_per_room=self.max_monsters_per_room,
-            max_items_per_room=self.max_items_per_room,
+            max_monsters_per_room=get_max_value_for_floor(
+                max_monsters_by_floor, self.current_floor
+            ),
+            monster_chances=monster_chances,
+            max_items_per_room=get_max_value_for_floor(
+                max_items_by_floor, self.current_floor
+            ),
+            item_chances=item_chances,
             engine=self.engine,
         )
 
@@ -171,7 +208,23 @@ class GameWorld:
             room_max_size=room_max_size,
             map_width=self.map_width,
             map_height=self.map_height,
-            max_monsters_per_room=self.max_monsters_per_room,
-            max_items_per_room=self.max_items_per_room,
+            max_monsters_per_room=get_max_value_for_floor(
+                max_monsters_by_floor, self.current_floor
+            ),
+            monster_chances=monster_chances,
+            max_items_per_room=get_max_value_for_floor(
+                max_items_by_floor, self.current_floor
+            ),
+            item_chances=item_chances,
             engine=self.engine,
         )
+
+
+def get_max_value_for_floor(
+    max_value_by_floor: list[tuple[int, int]], floor: int
+) -> int:
+    for floor_minimum, value in reversed(max_value_by_floor):
+        if floor >= floor_minimum:
+            return value
+
+    return 0
